@@ -2,6 +2,9 @@
 
 A full-stack application for evaluating and comparing Large Language Model prompts through automated scoring and head-to-head analysis.
 
+<img width="1714" height="906" alt="image" src="https://github.com/user-attachments/assets/a68677c2-1c38-496e-9cd9-da445e01589a" />
+
+
 ## Problem Statement
 
 LLM applications require rigorous prompt evaluation to ensure quality, safety, and effectiveness. Traditional trial-and-error approaches are inefficient and unreliable. This tool provides a systematic framework for:
