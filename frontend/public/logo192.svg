@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" fill="#2563eb" rx="24"/>
+  <circle cx="96" cy="70" r="25" fill="white"/>
+  <circle cx="60" cy="110" r="15" fill="white"/>
+  <circle cx="96" cy="110" r="15" fill="white"/>
+  <circle cx="132" cy="110" r="15" fill="white"/>
+  <text x="96" y="150" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">TOURNAMENT</text>
+</svg>
