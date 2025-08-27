@@ -433,7 +433,7 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {panelData.evaluationRows.map((row, index) => (
+                          {panelData.evaluationRows.map((row) => (
                             <tr key={`${row.generationId}-${row.evaluationId}`}>
                               {row.isFirstEvalForGeneration ? (
                                 <td
