@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { EvaluationTable } from './components';
-import { apiService, PromptEvaluationRequest, EvaluationResponse } from './lib';
+import { apiService, PromptEvaluationRequest, EvaluationResponse } from './shared';
 
 function App() {
   const [results, setResults] = useState<EvaluationResponse | null>(null);

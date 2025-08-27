@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { EvaluationCriterion, PromptEvaluationRequest, EvaluationResponse } from '../lib/types/api';
+import { EvaluationCriterion, PromptEvaluationRequest, EvaluationResponse } from '../shared/types/api';
 
 interface EvaluationTableProps {
   onEvaluate: (request: PromptEvaluationRequest) => void;
