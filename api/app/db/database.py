@@ -3,8 +3,17 @@ from datetime import datetime
 from typing import Optional
 
 from app.core.config import settings
-from sqlalchemy import JSON, Column, DateTime, Integer, String, create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Integer,
+    String,
+    create_engine,
+    desc,
+    select,
+)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 logger = logging.getLogger(__name__)
@@ -87,8 +96,9 @@ class DatabaseManager:
         """Get evaluation by ID."""
         try:
             async with self.async_session() as session:
-                evaluation = await session.get(EvaluationHistoryDB, evaluation_id)
-                return evaluation
+                stmt = select(EvaluationHistoryDB).filter_by(evaluation_id=evaluation_id)
+                result = await session.execute(stmt)
+                return result.scalar_one_or_none()
         except Exception as e:
             logger.error(f"Failed to get evaluation {evaluation_id}: {e}")
             return None
@@ -99,8 +109,6 @@ class DatabaseManager:
         """Get recent evaluations."""
         try:
             async with self.async_session() as session:
-                from sqlalchemy import desc, select
-
                 stmt = (
                     select(EvaluationHistoryDB)
                     .order_by(desc(EvaluationHistoryDB.created_at))
