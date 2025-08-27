@@ -3,6 +3,7 @@ import {
   EvaluationResponse,
   ProviderInfo,
   ApiError,
+  EvaluationHistory,
 } from '../types/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -57,6 +58,14 @@ class ApiService {
 
   async healthCheck(): Promise<{ status: string }> {
     return this.request<{ status: string }>('/api/v1/health');
+  }
+
+  async getEvaluationHistory(limit: number = 10): Promise<EvaluationHistory[]> {
+    return this.request<EvaluationHistory[]>(`/api/v1/evaluations?limit=${limit}`);
+  }
+
+  async getEvaluationById(evaluationId: string): Promise<EvaluationResponse> {
+    return this.request<EvaluationResponse>(`/api/v1/evaluations/${evaluationId}`);
   }
 }
 

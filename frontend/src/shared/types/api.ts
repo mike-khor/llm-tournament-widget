@@ -68,3 +68,12 @@ export interface ProviderInfo {
 export interface ApiError {
   detail: string | Array<{ msg: string; type: string; loc: string[] }>;
 }
+
+export interface EvaluationHistory {
+  id?: number;
+  evaluation_id: string;
+  request_data: Record<string, any>;
+  response_data: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}

@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { EvaluationTable } from './components';
+import { EvaluationTable, HistoryPanel } from './components';
 import { apiService, PromptEvaluationRequest, EvaluationResponse } from './shared';
 
 function App() {
   const [results, setResults] = useState<EvaluationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [initialFormData, setInitialFormData] = useState<PromptEvaluationRequest | null>(null);
 
   const handleEvaluate = async (request: PromptEvaluationRequest) => {
     setLoading(true);
@@ -22,9 +24,31 @@ function App() {
     }
   };
 
+  const handleSelectHistoricalEvaluation = (evaluation: EvaluationResponse, originalRequest: any) => {
+    setResults(evaluation);
+    setInitialFormData(originalRequest);
+    setError(null);
+  };
+
+  const handleClearHistory = () => {
+    setResults(null);
+    setInitialFormData(null);
+    setError(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-full mx-auto py-8 px-6">
+      <div className="max-w-full mx-auto py-8 px-6 relative">
+        {/* History Toggle Button */}
+        <button
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="fixed top-4 left-4 z-30 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg p-2 shadow-sm transition-colors"
+          title="Toggle Evaluation History"
+        >
+          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
         {/* Error Display */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -53,6 +77,8 @@ function App() {
           onEvaluate={handleEvaluate}
           results={results}
           loading={loading}
+          initialData={initialFormData}
+          onClearHistory={handleClearHistory}
         />
 
         {/* Footer */}
@@ -61,6 +87,13 @@ function App() {
             Powered by FastAPI backend with support for multiple LLM providers
           </p>
         </div>
+
+        {/* History Panel */}
+        <HistoryPanel
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          onSelectEvaluation={handleSelectHistoricalEvaluation}
+        />
       </div>
     </div>
   );

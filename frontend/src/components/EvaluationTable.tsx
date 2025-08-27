@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EvaluationCriterion, PromptEvaluationRequest, EvaluationResponse } from '../shared/types/api';
 
 interface EvaluationTableProps {
   onEvaluate: (request: PromptEvaluationRequest) => void;
   results: EvaluationResponse | null;
   loading: boolean;
+  initialData?: PromptEvaluationRequest | null;
+  onClearHistory?: () => void;
 }
 
 const defaultCriteria: EvaluationCriterion[] = [
@@ -31,7 +33,9 @@ const defaultCriteria: EvaluationCriterion[] = [
 export const EvaluationTable: React.FC<EvaluationTableProps> = ({
   onEvaluate,
   results,
-  loading
+  loading,
+  initialData,
+  onClearHistory
 }) => {
   const [testInput, setTestInput] = useState('');
   const [expectedOutput, setExpectedOutput] = useState('');
@@ -41,6 +45,18 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
   const [criteria, setCriteria] = useState<EvaluationCriterion[]>(defaultCriteria);
   const [selectedCell, setSelectedCell] = useState<{promptId: string, criterionName: string} | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+  // Effect to populate form with initial data when loading historical evaluations
+  useEffect(() => {
+    if (initialData) {
+      setTestInput(initialData.test_input || '');
+      setExpectedOutput(initialData.expected_output || '');
+      setGenerationCount(initialData.generation_count || 3);
+      setEvaluationCount(initialData.evaluation_count || 3);
+      setPrompts(initialData.prompts || ['']);
+      setCriteria(initialData.criteria || defaultCriteria);
+    }
+  }, [initialData]);
 
   const addPrompt = () => {
     if (prompts.length < 10) {
@@ -164,7 +180,27 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
         <div className="space-y-6 p-4">
           {/* Header Section */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">LLM Tournament</h1>
+            <div className="flex items-center gap-3 mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">LLM Tournament</h1>
+              {initialData && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Historical Data
+                  </div>
+                  {onClearHistory && (
+                    <button
+                      onClick={onClearHistory}
+                      className="text-sm text-gray-600 hover:text-gray-800 px-3 py-1 rounded-md hover:bg-gray-100"
+                    >
+                      Clear & Start New
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
