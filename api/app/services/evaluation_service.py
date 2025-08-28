@@ -9,11 +9,11 @@ from datetime import datetime
 from typing import List, Optional
 
 from app.core.models import (
-    EvaluationCriterion, 
-    PromptResult, 
-    GenerationResult,
+    EvaluationCriterion,
     EvaluationResult,
-    GenerationEvaluationResult
+    GenerationEvaluationResult,
+    GenerationResult,
+    PromptResult,
 )
 from app.services.llm_providers import LLMProvider, LLMProviderError
 from app.services.provider_factory import create_llm_provider
@@ -25,26 +25,38 @@ __all__ = ["EvaluationService", "EvaluationError"]
 
 class EvaluationError(Exception):
     """Custom exception for evaluation errors."""
+
     pass
 
 
 class EvaluationService:
     """Service for evaluating prompts using configurable LLM providers."""
 
-    def __init__(self, provider: Optional[LLMProvider] = None):
+    def __init__(
+        self,
+        generation_provider: Optional[LLMProvider] = None,
+        evaluation_provider: Optional[LLMProvider] = None,
+    ):
         """
         Initialize evaluation service.
-        
+
         Args:
-            provider: LLM provider instance. If None, creates one using factory.
+            generation_provider: LLM provider for generation. If None, creates one using factory.
+            evaluation_provider: LLM provider for evaluation. If None, uses generation_provider.
         """
-        self.provider = provider or create_llm_provider()
-        logger.info(f"Initialized evaluation service with provider: {type(self.provider).__name__}")
+        self.generation_provider = generation_provider or create_llm_provider()
+        self.evaluation_provider = evaluation_provider or self.generation_provider
+
+        logger.info(
+            f"Initialized evaluation service with providers: "
+            f"generation={type(self.generation_provider).__name__}, "
+            f"evaluation={type(self.evaluation_provider).__name__}"
+        )
 
     async def generate_response(self, prompt: str, test_input: str) -> str:
-        """Generate response using the configured LLM provider."""
+        """Generate response using the configured generation provider."""
         try:
-            return await self.provider.generate_response(prompt, test_input)
+            return await self.generation_provider.generate_response(prompt, test_input)
         except LLMProviderError as e:
             logger.error(f"Provider error during generation: {e}")
             raise EvaluationError(f"Failed to generate response: {e}")
@@ -61,12 +73,12 @@ class EvaluationService:
     ) -> tuple[float, str]:
         """Evaluate a single response against one criterion using LLM-as-a-Judge."""
         try:
-            return await self.provider.evaluate_response(
+            return await self.evaluation_provider.evaluate_response(
                 output=output,
                 criterion_name=criterion.name,
                 criterion_description=criterion.description,
                 test_input=test_input,
-                expected_output=expected_output
+                expected_output=expected_output,
             )
         except LLMProviderError as e:
             logger.error(f"Provider error during evaluation: {e}")
@@ -83,14 +95,14 @@ class EvaluationService:
     ) -> List[GenerationResult]:
         """Generate multiple responses for a single prompt."""
         logger.info(f"Generating {generation_count} responses for prompt")
-        
+
         generation_tasks = [
             self.generate_single_response_with_timing(prompt, test_input)
             for _ in range(generation_count)
         ]
-        
+
         results = await asyncio.gather(*generation_tasks, return_exceptions=True)
-        
+
         generation_results: List[GenerationResult] = []
         for i, result in enumerate(results):
             if isinstance(result, (Exception, BaseException)):
@@ -104,22 +116,20 @@ class EvaluationService:
                 )
             elif isinstance(result, GenerationResult):
                 generation_results.append(result)
-        
+
         return generation_results
 
     async def generate_single_response_with_timing(
-        self, 
-        prompt: str, 
-        test_input: str
+        self, prompt: str, test_input: str
     ) -> GenerationResult:
         """Generate a single response with timing."""
         start_time = datetime.now()
         generation_id = str(uuid.uuid4())
-        
+
         try:
             output = await self.generate_response(prompt, test_input)
             generation_time = (datetime.now() - start_time).total_seconds()
-            
+
             return GenerationResult(
                 generation_id=generation_id,
                 output=output,
@@ -143,8 +153,10 @@ class EvaluationService:
         evaluation_count: int = 3,
     ) -> GenerationEvaluationResult:
         """Evaluate a single generation multiple times."""
-        logger.info(f"Evaluating generation {generation_result.generation_id} {evaluation_count} times")
-        
+        logger.info(
+            f"Evaluating generation {generation_result.generation_id} {evaluation_count} times"
+        )
+
         # Create evaluation tasks for each criterion and each evaluation run
         evaluation_tasks = []
         for _ in range(evaluation_count):
@@ -154,23 +166,25 @@ class EvaluationService:
                         generation_result.output, criterion, test_input, expected_output
                     )
                 )
-        
-        all_evaluation_results = await asyncio.gather(*evaluation_tasks, return_exceptions=True)
-        
+
+        all_evaluation_results = await asyncio.gather(
+            *evaluation_tasks, return_exceptions=True
+        )
+
         # Group results by evaluation run
-        evaluation_results = []
+        evaluation_results: list[EvaluationResult] = []
         criteria_count = len(criteria)
-        
+
         for eval_run in range(evaluation_count):
             eval_id = str(uuid.uuid4())
             start_idx = eval_run * criteria_count
             end_idx = start_idx + criteria_count
-            
+
             run_results = all_evaluation_results[start_idx:end_idx]
             scores = {}
             reasoning = {}
             total_eval_time = 0.0
-            
+
             for i, result in enumerate(run_results):
                 criterion_name = criteria[i].name
                 if isinstance(result, (Exception, BaseException)):
@@ -185,11 +199,13 @@ class EvaluationService:
                         reasoning[criterion_name] = reason
                         total_eval_time += eval_time
                     except (TypeError, ValueError) as e:
-                        logger.error(f"Failed to unpack result for {criterion_name}: {e}")
+                        logger.error(
+                            f"Failed to unpack result for {criterion_name}: {e}"
+                        )
                         scores[criterion_name] = 0.5
                         reasoning[criterion_name] = f"Result unpacking error: {str(e)}"
                         total_eval_time += 0.0
-            
+
             evaluation_results.append(
                 EvaluationResult(
                     evaluation_id=eval_id,
@@ -198,25 +214,26 @@ class EvaluationService:
                     evaluation_time=total_eval_time,
                 )
             )
-        
+
         # Aggregate scores and reasoning across evaluations
         aggregated_scores = {}
         aggregated_reasoning = {}
-        
+
         for criterion in criteria:
             criterion_name = criterion.name
             scores_for_criterion = [
-                eval_result.scores[criterion_name] 
-                for eval_result in evaluation_results
+                eval_result.scores[criterion_name] for eval_result in evaluation_results
             ]
             reasoning_for_criterion = [
                 eval_result.reasoning[criterion_name]
                 for eval_result in evaluation_results
             ]
-            
-            aggregated_scores[criterion_name] = sum(scores_for_criterion) / len(scores_for_criterion)
+
+            aggregated_scores[criterion_name] = sum(scores_for_criterion) / len(
+                scores_for_criterion
+            )
             aggregated_reasoning[criterion_name] = reasoning_for_criterion
-        
+
         return GenerationEvaluationResult(
             generation_result=generation_result,
             evaluation_results=evaluation_results,
@@ -233,9 +250,11 @@ class EvaluationService:
     ) -> tuple[float, str, float]:
         """Evaluate a single response against one criterion with timing."""
         start_time = datetime.now()
-        
+
         try:
-            score, reasoning = await self.evaluate_response(output, criterion, test_input, expected_output)
+            score, reasoning = await self.evaluate_response(
+                output, criterion, test_input, expected_output
+            )
             evaluation_time = (datetime.now() - start_time).total_seconds()
             return score, reasoning, evaluation_time
         except Exception as e:
@@ -280,16 +299,20 @@ class EvaluationService:
             # Step 3: Aggregate scores across all generations and evaluations
             final_scores = {}
             total_score = 0.0
-            
+
             for criterion in criteria:
                 criterion_name = criterion.name
                 all_scores_for_criterion = []
-                
+
                 for gen_eval_result in generation_evaluation_results:
-                    all_scores_for_criterion.append(gen_eval_result.aggregated_scores[criterion_name])
-                
+                    all_scores_for_criterion.append(
+                        gen_eval_result.aggregated_scores[criterion_name]
+                    )
+
                 # Average across all generations
-                final_scores[criterion_name] = sum(all_scores_for_criterion) / len(all_scores_for_criterion)
+                final_scores[criterion_name] = sum(all_scores_for_criterion) / len(
+                    all_scores_for_criterion
+                )
                 total_score += final_scores[criterion_name] * criterion.weight
 
             # Calculate execution time
@@ -346,7 +369,12 @@ class EvaluationService:
         # Create evaluation tasks
         eval_tasks = [
             self.evaluate_prompt(
-                prompt, test_input, criteria, expected_output, generation_count, evaluation_count
+                prompt,
+                test_input,
+                criteria,
+                expected_output,
+                generation_count,
+                evaluation_count,
             )
             for prompt in prompts
         ]
@@ -388,6 +416,8 @@ class EvaluationService:
     def get_provider_info(self) -> dict:
         """Get information about the current provider."""
         return {
-            "provider_type": type(self.provider).__name__,
-            "model": self.provider.model,
+            "generation_provider_type": type(self.generation_provider).__name__,
+            "generation_model": self.generation_provider.model,
+            "evaluation_provider_type": type(self.evaluation_provider).__name__,
+            "evaluation_model": self.evaluation_provider.model,
         }

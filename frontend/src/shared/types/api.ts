@@ -16,6 +16,11 @@ export interface PromptEvaluationRequest {
   criteria?: EvaluationCriterion[];
   generation_count?: number;
   evaluation_count?: number;
+  // Model configuration
+  generation_provider?: string;
+  generation_model?: string;
+  evaluation_provider?: string;
+  evaluation_model?: string;
 }
 
 export interface GenerationResult {
@@ -56,6 +61,11 @@ export interface EvaluationResponse {
   results: PromptResult[];
   criteria: EvaluationCriterion[];
   status: string;
+  // Model information used for this evaluation
+  generation_provider: string;
+  generation_model: string;
+  evaluation_provider: string;
+  evaluation_model: string;
 }
 
 export interface ProviderInfo {
@@ -63,6 +73,30 @@ export interface ProviderInfo {
   model: string;
   configured_provider: string;
   available_providers: string[];
+}
+
+// Model configuration types
+export interface ModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  context_length: number;
+  supports_generation: boolean;
+  supports_evaluation: boolean;
+  cost_per_1k_input_tokens: number;
+  cost_per_1k_output_tokens: number;
+}
+
+export interface ProviderConfig {
+  name: string;
+  display_name: string;
+  enabled: boolean;
+  models: ModelInfo[];
+}
+
+export interface ModelsResponse {
+  [providerName: string]: ProviderConfig;
 }
 
 export interface ApiError {

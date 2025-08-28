@@ -4,6 +4,8 @@ import {
   ProviderInfo,
   ApiError,
   EvaluationHistory,
+  ModelsResponse,
+  ModelInfo,
 } from '../types/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -66,6 +68,23 @@ class ApiService {
 
   async getEvaluationById(evaluationId: string): Promise<EvaluationResponse> {
     return this.request<EvaluationResponse>(`/api/v1/evaluations/${evaluationId}`);
+  }
+
+  // Model configuration endpoints
+  async getAvailableModels(): Promise<ModelsResponse> {
+    return this.request<ModelsResponse>('/api/v1/models/');
+  }
+
+  async getGenerationModels(): Promise<ModelInfo[]> {
+    return this.request<ModelInfo[]>('/api/v1/models/generation');
+  }
+
+  async getEvaluationModels(): Promise<ModelInfo[]> {
+    return this.request<ModelInfo[]>('/api/v1/models/evaluation');
+  }
+
+  async getModelDetails(provider: string, modelId: string): Promise<ModelInfo> {
+    return this.request<ModelInfo>(`/api/v1/models/${provider}/${modelId}`);
   }
 }
 

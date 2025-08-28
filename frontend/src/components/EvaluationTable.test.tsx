@@ -32,7 +32,11 @@ describe('EvaluationTable', () => {
       { name: 'accuracy', description: 'Accuracy test', weight: 0.5, score_type: 'continuous' },
       { name: 'relevance', description: 'Relevance test', weight: 0.5, score_type: 'continuous' }
     ],
-    status: 'completed'
+    status: 'completed',
+    generation_provider: 'openai',
+    generation_model: 'gpt-4o-mini',
+    evaluation_provider: 'openai',
+    evaluation_model: 'gpt-4o-mini'
   };
 
   beforeEach(() => {

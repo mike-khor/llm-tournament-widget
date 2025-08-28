@@ -61,6 +61,19 @@ class PromptEvaluationRequest(BaseModel):
     evaluation_count: int = Field(
         3, ge=1, le=10, description="Number of evaluations per generation"
     )
+    # Model configuration for generation and evaluation
+    generation_provider: Optional[str] = Field(
+        None, description="Provider to use for generation (e.g., 'openai', 'claude')"
+    )
+    generation_model: Optional[str] = Field(
+        None, description="Model to use for generation (e.g., 'gpt-4o-mini')"
+    )
+    evaluation_provider: Optional[str] = Field(
+        None, description="Provider to use for evaluation (e.g., 'openai', 'claude')"
+    )
+    evaluation_model: Optional[str] = Field(
+        None, description="Model to use for evaluation (e.g., 'gpt-4o-mini')"
+    )
 
 
 class GenerationResult(BaseModel):
@@ -128,6 +141,11 @@ class EvaluationResponse(BaseModel):
         ..., description="Criteria used for evaluation"
     )
     status: str = Field("completed", description="Status of the evaluation")
+    # Model information used for this evaluation
+    generation_provider: str = Field(..., description="Provider used for generation")
+    generation_model: str = Field(..., description="Model used for generation")
+    evaluation_provider: str = Field(..., description="Provider used for evaluation")
+    evaluation_model: str = Field(..., description="Model used for evaluation")
 
 
 class EvaluationHistory(BaseModel):

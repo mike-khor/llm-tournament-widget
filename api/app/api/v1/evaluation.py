@@ -1,26 +1,53 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from app.core.config import settings
-from app.db.database import DatabaseManager, get_database
-from app.services.evaluation_service import EvaluationService, EvaluationError
-from fastapi import APIRouter, Depends, HTTPException
 from app.core.models import (
     EvaluationHistory,
     EvaluationResponse,
     PromptEvaluationRequest,
 )
+from app.db.database import DatabaseManager, get_database
+from app.services.evaluation_service import EvaluationError, EvaluationService
+from app.services.provider_factory import ProviderFactory
+from fastapi import APIRouter, Depends, HTTPException
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["evaluation"])
 
+
 # Evaluation service setup
-def get_evaluation_service():
-    """Get evaluation service instance."""
-    return EvaluationService()
+def get_evaluation_service(
+    generation_provider: Optional[str] = None,
+    generation_model: Optional[str] = None,
+    evaluation_provider: Optional[str] = None,
+    evaluation_model: Optional[str] = None,
+):
+    """Get evaluation service instance with specific models."""
+
+    # Use provided values or fallback to settings defaults
+    gen_provider = generation_provider or settings.llm_provider
+    gen_model = generation_model or (
+        settings.openai_model if gen_provider == "openai" else settings.claude_model
+    )
+    eval_provider = evaluation_provider or gen_provider
+    eval_model = evaluation_model or gen_model
+
+    # Create providers with specified models
+    generation_provider_instance = ProviderFactory.create_provider_with_model(
+        gen_provider, gen_model
+    )
+    evaluation_provider_instance = ProviderFactory.create_provider_with_model(
+        eval_provider, eval_model
+    )
+
+    return EvaluationService(
+        generation_provider=generation_provider_instance,
+        evaluation_provider=evaluation_provider_instance,
+    )
 
 
 @router.post("/evaluate", response_model=EvaluationResponse)
@@ -42,8 +69,25 @@ async def evaluate_prompts(
 
         logger.info(f"Starting evaluation of {len(request.prompts)} prompts")
 
+        # Determine models to use - defaults to configuration if not provided
+        gen_provider = request.generation_provider or settings.llm_provider
+        gen_model = request.generation_model or (
+            settings.openai_model if gen_provider == "openai" else settings.claude_model
+        )
+        eval_provider = request.evaluation_provider or gen_provider
+        eval_model = request.evaluation_model or gen_model
+
+        logger.info(
+            f"Using models: generation={gen_provider}/{gen_model}, evaluation={eval_provider}/{eval_model}"
+        )
+
         # Get evaluation service and perform evaluation
-        evaluation_service = get_evaluation_service()
+        evaluation_service = get_evaluation_service(
+            generation_provider=gen_provider,
+            generation_model=gen_model,
+            evaluation_provider=eval_provider,
+            evaluation_model=eval_model,
+        )
         results = await evaluation_service.evaluate_multiple_prompts(  # type: ignore[attr-defined]
             prompts=request.prompts,
             test_input=request.test_input,
@@ -61,6 +105,10 @@ async def evaluate_prompts(
             results=results,
             criteria=request.criteria,
             status="completed",
+            generation_provider=gen_provider,
+            generation_model=gen_model,
+            evaluation_provider=eval_provider,
+            evaluation_model=eval_model,
         )
 
         # Save to database (don't fail if database save fails)
@@ -69,9 +117,13 @@ async def evaluate_prompts(
                 evaluation_id=evaluation_id,
                 request_data=request.model_dump(),
                 response_data=response.model_dump(),
+                generation_provider=gen_provider,
+                generation_model=gen_model,
+                evaluation_provider=eval_provider,
+                evaluation_model=eval_model,
             )
         except Exception as e:
-            logger.warning(f"Failed to save evaluation to database: {e}")
+            logger.exception(f"Failed to save evaluation to database: {e}")
 
         logger.info(f"Completed evaluation {evaluation_id}")
         return response
@@ -146,14 +198,15 @@ async def get_provider_info():
     try:
         evaluation_service = get_evaluation_service()
         provider_info = evaluation_service.get_provider_info()
-        
+
         return {
-            "current_provider": provider_info["provider_type"],
-            "model": provider_info["model"],
+            "current_providers": provider_info,
             "configured_provider": settings.llm_provider,
-            "available_providers": ["openai", "claude"]
+            "available_providers": ["openai", "claude"],
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting provider info: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get provider information")
+        raise HTTPException(
+            status_code=500, detail="Failed to get provider information"
+        )

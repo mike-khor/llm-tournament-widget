@@ -1,4 +1,5 @@
 from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
 
     # OpenAI Settings
     openai_api_key: str = "your-openai-api-key"  # Default for testing
-    openai_model: str = "gpt-4"
+    openai_model: str = "gpt-4o-mini-2024-07-18"
 
     # Anthropic Claude Settings
     anthropic_api_key: str = "your-anthropic-api-key"  # Default for testing

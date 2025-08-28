@@ -125,7 +125,7 @@ class OpenAIProvider(LLMProvider):
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": test_input},
                 ],
-                max_tokens=500,
+                max_completion_tokens=500,
                 temperature=0.7,
             )
 
@@ -166,8 +166,8 @@ class OpenAIProvider(LLMProvider):
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": eval_prompt}],
-                max_tokens=200,
-                temperature=0.1,
+                max_completion_tokens=200,
+                # temperature=0.1,  # NOTE: not supported for GPT-5
             )
 
             content = response.choices[0].message.content

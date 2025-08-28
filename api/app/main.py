@@ -6,13 +6,11 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
+from app.api.v1 import evaluation, health, models
 from app.core.config import settings
 from app.db.database import close_database, get_database
-from app.api.v1 import evaluation, health
-
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Configure logging
 logging.basicConfig(
@@ -66,5 +64,6 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(health.router)
     app.include_router(evaluation.router)
+    app.include_router(models.router, prefix="/api/v1/models", tags=["models"])
 
     return app

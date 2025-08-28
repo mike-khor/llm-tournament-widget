@@ -101,7 +101,11 @@ describe('ApiService', () => {
         timestamp: '2023-01-01T00:00:00Z',
         results: [],
         criteria: mockRequest.criteria!,
-        status: 'completed'
+        status: 'completed',
+        generation_provider: 'openai',
+        generation_model: 'gpt-4o-mini',
+        evaluation_provider: 'openai',
+        evaluation_model: 'gpt-4o-mini'
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -177,7 +181,11 @@ describe('ApiService', () => {
         timestamp: '2023-01-01T00:00:00Z',
         results: [],
         criteria: [],
-        status: 'completed'
+        status: 'completed',
+        generation_provider: 'openai',
+        generation_model: 'gpt-4o-mini',
+        evaluation_provider: 'openai',
+        evaluation_model: 'gpt-4o-mini'
       };
 
       mockFetch.mockResolvedValueOnce({

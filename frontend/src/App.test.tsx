@@ -60,7 +60,11 @@ describe('App', () => {
       evaluation_count: 3
     }],
     criteria: [{ name: 'accuracy', description: 'Test', weight: 1.0, score_type: 'continuous' }],
-    status: 'completed'
+    status: 'completed',
+    generation_provider: 'openai',
+    generation_model: 'gpt-4o-mini',
+    evaluation_provider: 'openai',
+    evaluation_model: 'gpt-4o-mini'
   };
 
   beforeEach(() => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EvaluationCriterion, PromptEvaluationRequest, EvaluationResponse } from '../shared/types/api';
+import { ModelSelector } from './ModelSelector';
 
 interface EvaluationTableProps {
   onEvaluate: (request: PromptEvaluationRequest) => void;
@@ -45,6 +46,12 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
   const [criteria, setCriteria] = useState<EvaluationCriterion[]>(defaultCriteria);
   const [selectedCell, setSelectedCell] = useState<{promptId: string, criterionName: string} | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  // Model selection state
+  const [generationProvider, setGenerationProvider] = useState<string>('');
+  const [generationModel, setGenerationModel] = useState<string>('');
+  const [evaluationProvider, setEvaluationProvider] = useState<string>('');
+  const [evaluationModel, setEvaluationModel] = useState<string>('');
+  const [useAdvancedModelSettings, setUseAdvancedModelSettings] = useState(false);
 
   // Effect to populate form with initial data when loading historical evaluations
   useEffect(() => {
@@ -55,6 +62,21 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
       setEvaluationCount(initialData.evaluation_count || 3);
       setPrompts(initialData.prompts || ['']);
       setCriteria(initialData.criteria || defaultCriteria);
+
+      // Set model configuration if provided
+      if (initialData.generation_provider) {
+        setGenerationProvider(initialData.generation_provider);
+        setUseAdvancedModelSettings(true);
+      }
+      if (initialData.generation_model) {
+        setGenerationModel(initialData.generation_model);
+      }
+      if (initialData.evaluation_provider) {
+        setEvaluationProvider(initialData.evaluation_provider);
+      }
+      if (initialData.evaluation_model) {
+        setEvaluationModel(initialData.evaluation_model);
+      }
     }
   }, [initialData]);
 
@@ -121,6 +143,18 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
       generation_count: generationCount,
       evaluation_count: evaluationCount,
     };
+
+    // Add model configuration if advanced settings are enabled
+    if (useAdvancedModelSettings) {
+      if (generationProvider && generationModel) {
+        request.generation_provider = generationProvider;
+        request.generation_model = generationModel;
+      }
+      if (evaluationProvider && evaluationModel) {
+        request.evaluation_provider = evaluationProvider;
+        request.evaluation_model = evaluationModel;
+      }
+    }
 
     onEvaluate(request);
   };
@@ -209,9 +243,10 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                   value={testInput}
                   onChange={(e) => setTestInput(e.target.value)}
                   placeholder="Enter the test question..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   rows={3}
                   required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -220,8 +255,9 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                   value={expectedOutput}
                   onChange={(e) => setExpectedOutput(e.target.value)}
                   placeholder="Expected output (optional)..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   rows={3}
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -232,7 +268,8 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                   max="10"
                   value={generationCount}
                   onChange={(e) => setGenerationCount(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -243,9 +280,70 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                   max="10"
                   value={evaluationCount}
                   onChange={(e) => setEvaluationCount(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={loading}
                 />
               </div>
+            </div>
+
+            {/* Advanced Model Selection */}
+            <div className="mt-6 border-t pt-4">
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  id="advanced-models"
+                  checked={useAdvancedModelSettings}
+                  onChange={(e) => setUseAdvancedModelSettings(e.target.checked)}
+                  className="mr-2 disabled:cursor-not-allowed"
+                  disabled={loading}
+                />
+                <label htmlFor="advanced-models" className="text-sm font-medium text-gray-700">
+                  Advanced Model Configuration
+                </label>
+              </div>
+
+              {useAdvancedModelSettings && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <ModelSelector
+                    label="Generation Model"
+                    selectedProvider={generationProvider}
+                    selectedModel={generationModel}
+                    onModelChange={(provider, model) => {
+                      setGenerationProvider(provider);
+                      setGenerationModel(model);
+                    }}
+                    filterType="generation"
+                    disabled={loading}
+                  />
+                  <ModelSelector
+                    label="Evaluation Model"
+                    selectedProvider={evaluationProvider}
+                    selectedModel={evaluationModel}
+                    onModelChange={(provider, model) => {
+                      setEvaluationProvider(provider);
+                      setEvaluationModel(model);
+                    }}
+                    filterType="evaluation"
+                    disabled={loading}
+                  />
+                  <div className="col-span-1 md:col-span-2 text-xs text-gray-600">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="font-medium text-gray-700">Model Selection Guide:</p>
+                        <ul className="mt-1 space-y-1">
+                          <li>• <span className="font-medium">Generation Model</span>: Used to generate responses to your prompts</li>
+                          <li>• <span className="font-medium">Evaluation Model</span>: Used to score and evaluate the generated responses</li>
+                          <li>• Leave empty to use the server's default configuration</li>
+                          <li>• Different models have different costs and capabilities - check the pricing before running evaluations</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
         <div className="flex justify-between items-center">
@@ -276,8 +374,8 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                 Prompts
                 <button
                   onClick={addPrompt}
-                  disabled={prompts.length >= 10}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  disabled={prompts.length >= 10 || loading}
+                  className="ml-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                   + Add
                 </button>
@@ -290,13 +388,15 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                         type="text"
                         value={criterion.name}
                         onChange={(e) => updateCriterion(index, 'name', e.target.value)}
-                        className="text-xs font-medium bg-transparent border-none p-0 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
+                        className="text-xs font-medium bg-transparent border-none p-0 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="Criterion name"
+                        disabled={loading}
                       />
                       {criteria.length > 1 && (
                         <button
                           onClick={() => removeCriterion(index)}
-                          className="text-red-600 hover:text-red-800 text-xs"
+                          disabled={loading}
+                          className="text-red-600 hover:text-red-800 text-xs disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                           ×
                         </button>
@@ -306,8 +406,9 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                       type="text"
                       value={criterion.description}
                       onChange={(e) => updateCriterion(index, 'description', e.target.value)}
-                      className="text-xs text-gray-600 bg-transparent border-none p-0 w-full focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
+                      className="text-xs text-gray-600 bg-transparent border-none p-0 w-full focus:outline-none focus:ring-1 focus:ring-blue-500 rounded disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="Description"
+                      disabled={loading}
                     />
                     <input
                       type="number"
@@ -316,8 +417,9 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                       max="1"
                       value={criterion.weight}
                       onChange={(e) => updateCriterion(index, 'weight', parseFloat(e.target.value) || 0)}
-                      className="text-xs bg-transparent border-none p-0 w-16 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded"
+                      className="text-xs bg-transparent border-none p-0 w-16 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="Weight"
+                      disabled={loading}
                     />
                   </div>
                 </th>
@@ -327,7 +429,8 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                 {criteria.length < 10 && (
                   <button
                     onClick={addCriterion}
-                    className="ml-2 text-blue-600 hover:text-blue-800"
+                    disabled={loading}
+                    className="ml-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     + Add Criterion
                   </button>
@@ -348,13 +451,15 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                         value={prompt}
                         onChange={(e) => updatePrompt(promptIndex, e.target.value)}
                         placeholder={`Enter prompt ${promptIndex + 1}...`}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                         rows={3}
+                        disabled={loading}
                       />
                       {prompts.length > 1 && (
                         <button
                           onClick={() => removePrompt(promptIndex)}
-                          className="text-red-600 hover:text-red-800 px-2 py-1 text-lg font-bold"
+                          disabled={loading}
+                          className="text-red-600 hover:text-red-800 px-2 py-1 text-lg font-bold disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                           ×
                         </button>
@@ -414,6 +519,39 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
               </table>
             </div>
           </div>
+
+          {/* Model Information Display */}
+          {results && (
+            <div className="mt-4 bg-gray-50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Evaluation Configuration</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <div className="font-medium text-gray-600 mb-1">Generation Model</div>
+                  <div className="text-gray-800">
+                    {results.generation_provider} / {results.generation_model}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium text-gray-600 mb-1">Evaluation Model</div>
+                  <div className="text-gray-800">
+                    {results.evaluation_provider} / {results.evaluation_model}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium text-gray-600 mb-1">Evaluation ID</div>
+                  <div className="text-gray-800 font-mono">
+                    {results.evaluation_id}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium text-gray-600 mb-1">Timestamp</div>
+                  <div className="text-gray-800">
+                    {new Date(results.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -460,7 +598,7 @@ export const EvaluationTable: React.FC<EvaluationTableProps> = ({
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-1/2">
                               Generation
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-16">
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-1/8">
                               Eval #
                             </th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">

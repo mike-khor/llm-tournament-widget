@@ -73,12 +73,12 @@ def test_evaluate_endpoint_with_generation_counts():
             "prompts": ["Test prompt"],
             "test_input": "Test input",
             "generation_count": 2,
-            "evaluation_count": 2
+            "evaluation_count": 2,
         },
     )
     # Should succeed in validation (actual evaluation may fail without API key)
     assert response.status_code in [422, 500] or response.status_code == 200
-    
+
     # If successful, check response structure
     if response.status_code == 200:
         data = response.json()
@@ -100,11 +100,11 @@ def test_evaluate_endpoint_generation_count_bounds():
             "prompts": ["Test prompt"],
             "test_input": "Test input",
             "generation_count": 1,
-            "evaluation_count": 1
+            "evaluation_count": 1,
         },
     )
     assert response.status_code in [422, 500] or response.status_code == 200
-    
+
     # Test maximum value
     response = client.post(
         "/api/v1/evaluate",
@@ -112,7 +112,7 @@ def test_evaluate_endpoint_generation_count_bounds():
             "prompts": ["Test prompt"],
             "test_input": "Test input",
             "generation_count": 10,
-            "evaluation_count": 10
+            "evaluation_count": 10,
         },
     )
     assert response.status_code in [422, 500] or response.status_code == 200
@@ -126,35 +126,35 @@ def test_evaluate_endpoint_invalid_generation_counts():
         json={
             "prompts": ["Test prompt"],
             "test_input": "Test input",
-            "generation_count": 0
+            "generation_count": 0,
         },
     )
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert isinstance(detail, list) and len(detail) > 0
     assert "greater than or equal to 1" in detail[0]["msg"]
-    
+
     # Test generation_count too high
     response = client.post(
         "/api/v1/evaluate",
         json={
             "prompts": ["Test prompt"],
             "test_input": "Test input",
-            "generation_count": 15
+            "generation_count": 15,
         },
     )
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert isinstance(detail, list) and len(detail) > 0
     assert "less than or equal to 10" in detail[0]["msg"]
-    
+
     # Test evaluation_count too low
     response = client.post(
         "/api/v1/evaluate",
         json={
             "prompts": ["Test prompt"],
             "test_input": "Test input",
-            "evaluation_count": 0
+            "evaluation_count": 0,
         },
     )
     assert response.status_code == 422
@@ -167,14 +167,11 @@ def test_evaluate_endpoint_default_counts():
     """Test evaluation endpoint uses default generation and evaluation counts."""
     response = client.post(
         "/api/v1/evaluate",
-        json={
-            "prompts": ["Test prompt"],
-            "test_input": "Test input"
-        },
+        json={"prompts": ["Test prompt"], "test_input": "Test input"},
     )
     # Should succeed in validation (actual evaluation may fail without API key)
     assert response.status_code in [422, 500] or response.status_code == 200
-    
+
     # If successful, check default values
     if response.status_code == 200:
         data = response.json()
@@ -191,21 +188,21 @@ def test_evaluate_response_structure():
             "prompts": ["Test prompt"],
             "test_input": "Test input",
             "generation_count": 1,
-            "evaluation_count": 1
+            "evaluation_count": 1,
         },
     )
-    
+
     # If successful, validate complete response structure
     if response.status_code == 200:
         data = response.json()
-        
+
         # Top-level response structure
         assert "evaluation_id" in data
         assert "timestamp" in data
         assert "results" in data
         assert "criteria" in data
         assert "status" in data
-        
+
         # Result structure
         result = data["results"][0]
         assert "prompt_id" in result
@@ -216,20 +213,20 @@ def test_evaluate_response_structure():
         assert "execution_time" in result
         assert "generation_count" in result
         assert "evaluation_count" in result
-        
+
         # Generation evaluation result structure
         gen_eval_result = result["generation_evaluation_results"][0]
         assert "generation_result" in gen_eval_result
         assert "evaluation_results" in gen_eval_result
         assert "aggregated_scores" in gen_eval_result
         assert "aggregated_reasoning" in gen_eval_result
-        
+
         # Generation result structure
         gen_result = gen_eval_result["generation_result"]
         assert "generation_id" in gen_result
         assert "output" in gen_result
         assert "generation_time" in gen_result
-        
+
         # Evaluation result structure
         eval_result = gen_eval_result["evaluation_results"][0]
         assert "evaluation_id" in eval_result
@@ -242,13 +239,12 @@ def test_provider_info_endpoint():
     """Test the provider info endpoint."""
     response = client.get("/api/v1/provider-info")
     assert response.status_code == 200
-    
+
     data = response.json()
-    assert "current_provider" in data
-    assert "model" in data
+    assert "current_providers" in data
     assert "configured_provider" in data
     assert "available_providers" in data
-    
+
     # Should show available providers
     assert "openai" in data["available_providers"]
     assert "claude" in data["available_providers"]

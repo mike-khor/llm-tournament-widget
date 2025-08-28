@@ -32,6 +32,11 @@ class EvaluationHistoryDB(Base):
     evaluation_id = Column(String, unique=True, index=True, nullable=False)
     request_data = Column(JSON, nullable=False)
     response_data = Column(JSON, nullable=False)
+    # Model information for tracking which models were used
+    generation_provider = Column(String, nullable=False)
+    generation_model = Column(String, nullable=False)
+    evaluation_provider = Column(String, nullable=False)
+    evaluation_model = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     updated_at = Column(
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
@@ -73,7 +78,14 @@ class DatabaseManager:
         self.sync_engine.dispose()
 
     async def save_evaluation(
-        self, evaluation_id: str, request_data: dict, response_data: dict
+        self,
+        evaluation_id: str,
+        request_data: dict,
+        response_data: dict,
+        generation_provider: str,
+        generation_model: str,
+        evaluation_provider: str,
+        evaluation_model: str,
     ) -> Optional[EvaluationHistoryDB]:
         """Save evaluation to database."""
         try:
@@ -82,21 +94,29 @@ class DatabaseManager:
                     evaluation_id=evaluation_id,
                     request_data=request_data,
                     response_data=response_data,
+                    generation_provider=generation_provider,
+                    generation_model=generation_model,
+                    evaluation_provider=evaluation_provider,
+                    evaluation_model=evaluation_model,
                 )
                 session.add(evaluation)
                 await session.commit()
                 await session.refresh(evaluation)
-                logger.info(f"Saved evaluation {evaluation_id} to database")
+                logger.info(
+                    f"Saved evaluation {evaluation_id} to database with models: gen={generation_provider}/{generation_model}, eval={evaluation_provider}/{evaluation_model}"
+                )
                 return evaluation
         except Exception as e:
-            logger.error(f"Failed to save evaluation {evaluation_id}: {e}")
+            logger.exception(f"Failed to save evaluation {evaluation_id}: {e}")
             return None
 
     async def get_evaluation(self, evaluation_id: str) -> Optional[EvaluationHistoryDB]:
         """Get evaluation by ID."""
         try:
             async with self.async_session() as session:
-                stmt = select(EvaluationHistoryDB).filter_by(evaluation_id=evaluation_id)
+                stmt = select(EvaluationHistoryDB).filter_by(
+                    evaluation_id=evaluation_id
+                )
                 result = await session.execute(stmt)
                 return result.scalar_one_or_none()
         except Exception as e:
