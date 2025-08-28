@@ -167,7 +167,7 @@ class OpenAIProvider(LLMProvider):
                 model=self.model,
                 messages=[{"role": "user", "content": eval_prompt}],
                 max_completion_tokens=200,
-                # temperature=0.1,  # NOTE: not supported for GPT-5
+                temperature=0.1,
             )
 
             content = response.choices[0].message.content
