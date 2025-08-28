@@ -4,7 +4,6 @@ A full-stack application for evaluating and comparing Large Language Model promp
 
 <img width="1714" height="906" alt="image" src="https://github.com/user-attachments/assets/a68677c2-1c38-496e-9cd9-da445e01589a" />
 
-
 ## Problem Statement
 
 LLM applications require rigorous prompt evaluation to ensure quality, safety, and effectiveness. Traditional trial-and-error approaches are inefficient and unreliable. This tool provides a systematic framework for:
@@ -31,7 +30,7 @@ LLM applications require rigorous prompt evaluation to ensure quality, safety, a
 
 - **Evaluation Interface**: Submit prompts and configure evaluation criteria
 - **Advanced Model Configuration**: Select different models for generation and evaluation tasks
-- **Model Selection UI**: Provider-grouped dropdowns with cost transparency and capability filtering  
+- **Model Selection UI**: Provider-grouped dropdowns with cost transparency and capability filtering
 - **Results Dashboard**: Ranked results with performance breakdowns and model information
 - **History Panel**: Sliding panel with evaluation history and one-click reload functionality
 - **Real-time Progress**: Loading states and form validation during evaluation
@@ -83,20 +82,22 @@ Built on research-backed evaluation frameworks with modern infrastructure:
 ## Tech Stack
 
 ### Backend
-   - **FastAPI** - Async web framework with automatic API documentation
-   - **SQLAlchemy** - ORM with PostgreSQL database integration
-   - **Pydantic** - Data validation and settings management
-   - **Multi-Provider LLM Support**:
-     - OpenAI API (GPT-4o, GPT-4o Mini, GPT-4.1 Nano)
-     - Anthropic Claude API (Claude 4 Sonnet, Claude 3.5 Haiku)
-   - **Python 3.10+** with asyncio for concurrent processing
+
+- **FastAPI** - Async web framework with automatic API documentation
+- **SQLAlchemy** - ORM with PostgreSQL database integration
+- **Pydantic** - Data validation and settings management
+- **Multi-Provider LLM Support**:
+  - OpenAI API (GPT-4o, GPT-4o Mini, GPT-4.1 Nano)
+  - Anthropic Claude API (Claude 4 Sonnet, Claude 3.5 Haiku)
+- **Python 3.10+** with asyncio for concurrent processing
 
 ### Frontend
-   - **React 18** with TypeScript for type safety
-   - **Tailwind CSS** - Utility-first styling with responsive design
-   - **Modern React Patterns** - Hooks, context, and custom state management
-   - **Component Architecture** - Reusable UI components with proper props interfaces
-   - **Vitest** - Fast unit testing framework for frontend logic
+
+- **React 18** with TypeScript for type safety
+- **Tailwind CSS** - Utility-first styling with responsive design
+- **Modern React Patterns** - Hooks, context, and custom state management
+- **Component Architecture** - Reusable UI components with proper props interfaces
+- **Vitest** - Fast unit testing framework for frontend logic
 
 ## Project Structure
 
@@ -106,7 +107,7 @@ Built on research-backed evaluation frameworks with modern infrastructure:
 │   │   ├── main.py                   # FastAPI app factory and configuration
 │   │   ├── api/v1/                   # API route handlers
 │   │   │   ├── evaluation.py         # Evaluation endpoints
-│   │   │   ├── models.py            # Model configuration endpoints  
+│   │   │   ├── models.py            # Model configuration endpoints
 │   │   │   └── health.py            # Health check endpoints
 │   │   ├── core/                     # Core business logic
 │   │   │   ├── config.py            # Application settings
@@ -180,14 +181,16 @@ Built on research-backed evaluation frameworks with modern infrastructure:
 ## Setup & Development
 
 ### Prerequisites
+
 - **Backend**: Python 3.10+, PostgreSQL, Poetry
 - **Frontend**: Node.js 16+, NPM
 - **API Keys**: OpenAI and/or Anthropic Claude API access
 
 ### Quick Start
+
 1. Clone the repository
 2. Set up environment variables for API keys and database
-3. Run database setup: `poetry run python scripts/setup_db.py`
+3. Run database setup: `cd api && make setup-pg-dev`
 4. Start backend: `poetry run uvicorn app.main:create_app --factory --reload`
 5. Start frontend: `npm start`
 
