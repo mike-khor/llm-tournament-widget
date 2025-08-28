@@ -4,6 +4,7 @@ Evaluation service using configurable LLM providers.
 
 import asyncio
 import logging
+import random
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -157,36 +158,51 @@ class EvaluationService:
             f"Evaluating generation {generation_result.generation_id} {evaluation_count} times"
         )
 
-        # Create evaluation tasks for each criterion and each evaluation run
-        evaluation_tasks = []
-        for _ in range(evaluation_count):
+        # Create evaluation tasks with criteria information, then randomize the order
+        task_info_list = []
+        for eval_run in range(evaluation_count):
             for criterion in criteria:
-                evaluation_tasks.append(
-                    self.evaluate_single_with_timing(
+                task_info = {
+                    'eval_run': eval_run,
+                    'criterion': criterion,
+                    'task': self.evaluate_single_with_timing(
                         generation_result.output, criterion, test_input, expected_output
                     )
-                )
+                }
+                task_info_list.append(task_info)
+        
+        # Randomize the evaluation order to reduce position bias
+        random.shuffle(task_info_list)
+        
+        logger.info(f"Randomized evaluation order for {len(task_info_list)} evaluations")
 
+        # Execute all evaluation tasks in randomized order
+        evaluation_tasks = [info['task'] for info in task_info_list]
         all_evaluation_results = await asyncio.gather(
             *evaluation_tasks, return_exceptions=True
         )
 
-        # Group results by evaluation run
+        # Map results back to their original evaluation run and criterion
+        results_by_run = {}
+        for i, result in enumerate(all_evaluation_results):
+            eval_run = task_info_list[i]['eval_run']
+            criterion = task_info_list[i]['criterion']
+            
+            if eval_run not in results_by_run:
+                results_by_run[eval_run] = {}
+            
+            results_by_run[eval_run][criterion.name] = (result, criterion)
+
+        # Create evaluation results from the mapped data
         evaluation_results: list[EvaluationResult] = []
-        criteria_count = len(criteria)
 
         for eval_run in range(evaluation_count):
             eval_id = str(uuid.uuid4())
-            start_idx = eval_run * criteria_count
-            end_idx = start_idx + criteria_count
-
-            run_results = all_evaluation_results[start_idx:end_idx]
             scores = {}
             reasoning = {}
             total_eval_time = 0.0
 
-            for i, result in enumerate(run_results):
-                criterion_name = criteria[i].name
+            for criterion_name, (result, criterion) in results_by_run[eval_run].items():
                 if isinstance(result, (Exception, BaseException)):
                     logger.error(f"Evaluation failed for {criterion_name}: {result}")
                     scores[criterion_name] = 0.5
